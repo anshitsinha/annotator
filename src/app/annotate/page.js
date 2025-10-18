@@ -118,7 +118,7 @@ function VideoPlayer({ src }) {
                 <span>{formatTime(duration)}</span>
               </div>
             </div>
-           
+
             <div className="flex items-center gap-2">
               <label className="text-xs text-white/80">Speed</label>
               <select
@@ -297,8 +297,51 @@ export default function AnnotatePage() {
         body: JSON.stringify({ filename, annotations }),
       });
       const j = await res.json();
-      if (j.ok) setStatus({ kind: "success", msg: "Saved to DB" });
-      else setStatus({ kind: "error", msg: j.error || "save failed" });
+      if (res.status === 200 && j.ok) {
+        setStatus({ kind: "success", msg: "Saved to DB" });
+      } else if (res.status === 409 && j.exists) {
+        // conflict - annotation exists
+        setStatus({
+          kind: "error",
+          msg: "Annotation already exists. Click Save again to overwrite.",
+        });
+        // set a flag so that next save attempts force overwrite
+        setPendingForce(true);
+      } else {
+        setStatus({ kind: "error", msg: j.error || "save failed" });
+      }
+    } catch (err) {
+      setStatus({ kind: "error", msg: err.message });
+    }
+  }
+
+  // when user confirms overwrite, this is set and included in next save
+  const [pendingForce, setPendingForce] = useState(false);
+
+  // when Save button is clicked and pendingForce is true, resend with force
+  async function saveWithPossibleForce() {
+    if (!filename)
+      return setStatus({ kind: "error", msg: "Please set filename" });
+    setStatus({
+      kind: "loading",
+      msg: pendingForce ? "Overwriting..." : "Saving...",
+    });
+    try {
+      const res = await fetch("/api/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ filename, annotations, force: pendingForce }),
+      });
+      const j = await res.json();
+      if (res.status === 200 && j.ok) {
+        setStatus({
+          kind: "success",
+          msg: pendingForce ? "Overwritten in DB" : "Saved to DB",
+        });
+        setPendingForce(false);
+      } else {
+        setStatus({ kind: "error", msg: j.error || "save failed" });
+      }
     } catch (err) {
       setStatus({ kind: "error", msg: err.message });
     }
@@ -514,11 +557,17 @@ export default function AnnotatePage() {
                   Add token
                 </button>
                 <button
-                  onClick={save}
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white rounded"
+                  onClick={saveWithPossibleForce}
+                  className="px-3 py-2 bg-blue-600 text-white rounded"
                 >
-                  Save
+                  {pendingForce ? "Overwrite" : "Save"}
                 </button>
+                <a
+                  href="/view"
+                  className="px-3 py-2 bg-slate-600 text-white rounded"
+                >
+                  View Page
+                </a>
               </div>
             </div>
           </aside>

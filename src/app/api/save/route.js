@@ -9,18 +9,37 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-
-    const col = await getCollection("annotations");
+    let col;
+    try {
+      col = await getCollection("annotations");
+    } catch (dbErr) {
+      console.error("DB connection error in /api/save:", dbErr);
+      return new Response(
+        JSON.stringify({
+          error: "DB connection failed: " + (dbErr.message || String(dbErr)),
+        }),
+        { status: 500 }
+      );
+    }
+    // by default do not overwrite existing annotations to avoid accidental uploads
+    const existing = await col.findOne({ filename: body.filename });
     const now = new Date();
     const doc = {
       filename: body.filename,
       annotations: body.annotations,
       meta: body.meta || {},
-      createdAt: now,
+      createdAt: existing ? existing.createdAt : now,
       updatedAt: now,
     };
 
-    // upsert to prevent duplicates
+    // If client explicitly passes { force: true } allow overwrite, otherwise reject
+    if (existing && !body.force) {
+      return new Response(
+        JSON.stringify({ error: "annotation already exists", exists: true }),
+        { status: 409 }
+      );
+    }
+
     await col.updateOne(
       { filename: body.filename },
       { $set: doc },
@@ -29,8 +48,9 @@ export async function POST(request) {
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error("Unexpected /api/save error:", err);
+    // Avoid leaking sensitive connection info but return the message for debugging
+    return new Response(JSON.stringify({ error: err.message || String(err) }), {
       status: 500,
     });
   }
