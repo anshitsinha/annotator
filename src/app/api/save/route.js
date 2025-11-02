@@ -49,8 +49,13 @@ export async function POST(request) {
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (err) {
     console.error("Unexpected /api/save error:", err);
-    // Avoid leaking sensitive connection info but return the message for debugging
-    return new Response(JSON.stringify({ error: err.message || String(err) }), {
+    // Avoid leaking sensitive connection info in production. Return detailed
+    // message only in development, otherwise send a generic DB error.
+    const publicMsg =
+      process.env.NODE_ENV === "development"
+        ? err.message || String(err)
+        : "Database connection failed. Check server logs and MONGODB_URI.";
+    return new Response(JSON.stringify({ error: publicMsg }), {
       status: 500,
     });
   }

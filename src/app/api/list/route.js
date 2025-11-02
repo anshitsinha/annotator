@@ -56,7 +56,11 @@ export async function GET(request) {
     });
   } catch (err) {
     console.error(err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    const publicMsg =
+      process.env.NODE_ENV === "development"
+        ? err.message
+        : "Server error while listing annotations. Check server logs.";
+    return new Response(JSON.stringify({ error: publicMsg }), {
       status: 500,
     });
   }

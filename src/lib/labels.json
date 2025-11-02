@@ -1,6 +1,6 @@
 {
   "zones": ["FL", "FC", "FR", "SL", "SR", "RL", "RC", "RR"],
-  "actors": ["E", "V", "M", "A", "C", "P", "O"],
+  "actors": ["E", "V", "V+", "M", "M+", "B", "B+", "P", "P+", "O", "O+"],
   "events": [
     "CUT_IN_L",
     "CUT_IN_R",

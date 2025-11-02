@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 export default function ViewPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -12,9 +13,24 @@ export default function ViewPage() {
       try {
         const res = await fetch("/api/list");
         const j = await res.json();
-        setItems(j || []);
+        // API may return an error object when DB connection fails
+        if (!res.ok) {
+          console.error("/api/list error:", j);
+          // show as empty list but surface message to user via itemsError
+          setItems([]);
+          setErrorMsg(j && j.error ? j.error : "Failed to load annotations");
+        } else if (!Array.isArray(j)) {
+          // defensive: if API returned unexpected payload, convert or show empty
+          console.warn("/api/list returned non-array payload", j);
+          setItems([]);
+          setErrorMsg("Unexpected response from server");
+        } else {
+          setItems(j || []);
+          setErrorMsg("");
+        }
       } catch (e) {
         console.error(e);
+        setErrorMsg(e.message || String(e));
       } finally {
         setLoading(false);
       }
@@ -39,6 +55,8 @@ export default function ViewPage() {
 
         {loading ? (
           <div>Loading...</div>
+        ) : errorMsg ? (
+          <div className="text-sm text-red-600">Error: {errorMsg}</div>
         ) : items.length === 0 ? (
           <div>No annotations found</div>
         ) : (
