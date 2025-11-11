@@ -1,5 +1,5 @@
 {
-  "zones": ["FL", "FC", "FR", "SL", "SR", "RL", "RC", "RR"],
+  "zones": ["x", "FL", "FC", "FR", "SL", "SR", "RL", "RC", "RR"],
   "actors": ["E", "V", "V+", "M", "M+", "B", "B+", "P", "P+", "O", "O+"],
   "events": [
     "CUT_IN",
@@ -15,7 +15,7 @@
     "STOP",
     
    "SLOW_DOWN",
-   "Deviate",
+   "DEVIATE",
    "CROSS "
   ]
 }
