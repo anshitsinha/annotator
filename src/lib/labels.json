@@ -2,27 +2,20 @@
   "zones": ["FL", "FC", "FR", "SL", "SR", "RL", "RC", "RR"],
   "actors": ["E", "V", "V+", "M", "M+", "B", "B+", "P", "P+", "O", "O+"],
   "events": [
-    "CUT_IN_L",
-    "CUT_IN_R",
-    "CUT_OUT_L",
-    "CUT_OUT_R",
-    "MERGE_L",
-    "MERGE_R",
-    "OVERTAKE_L",
-    "OVERTAKE_R",
+    "CUT_IN",
+    "MERGE",
+    
+    "OVERTAKE",
     "FOLLOW",
-    "APPROACH",
-    "RECEDE",
+    
     "TURN_LEFT",
     "TURN_RIGHT",
     "U_TURN",
-    "CROSS_LR",
-    "CROSS_RL",
+    
     "STOP",
-    "YIELD",
-    "EGO_OVERTAKE",
-    "EGO_BRAKE",
-    "EGO_TURN_LEFT",
-    "EGO_TURN_RIGHT"
+    
+   "SLOW_DOWN",
+   "Deviate",
+   "CROSS "
   ]
 }
