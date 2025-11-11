@@ -17,5 +17,6 @@
    "SLOW_DOWN",
    "DEVIATE",
    "CROSS "
-  ]
+  ],
+   "relations": ["cause", "effect"]
 }
