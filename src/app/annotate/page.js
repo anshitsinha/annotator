@@ -393,8 +393,6 @@ export default function AnnotatePage() {
       return;
     }
 
-    // No client-side size limit; very large files may be slow to open in the browser.
-
     if (selectedFile.size === 0) {
       setStatus({ kind: "error", msg: "File is empty" });
       return;
@@ -409,8 +407,9 @@ export default function AnnotatePage() {
       ).toFixed(2)}MB)`,
     });
     setAnnotations([]); // Reset annotations for new file
+    setRelations([]); // Also reset relations for new file
+    // Don't reset nextId since we're calculating dynamically
   }
-
   // Drag and drop handlers
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -470,10 +469,25 @@ export default function AnnotatePage() {
       setStatus({ kind: "error", msg: err.message });
     }
   }
+
+  function getNextAvailableId(annotations) {
+    if (annotations.length === 0) return "1";
+
+    // Get all current IDs and find the maximum
+    const currentIds = annotations
+      .map((ann) => parseInt(ann.id))
+      .filter((id) => !isNaN(id));
+    if (currentIds.length === 0) return "1";
+
+    const maxId = Math.max(...currentIds);
+    return (maxId + 1).toString();
+  }
+
   function addToken() {
     const token = `<${current.z1}→${current.z2} : ${current.a1}→${current.a2} : ${current.e}>`;
+
     const newAnnotation = {
-      id: nextId.toString(),
+      id: getNextAvailableId(annotations),
       token,
       z1: current.z1,
       z2: current.z2,
@@ -483,7 +497,6 @@ export default function AnnotatePage() {
     };
 
     setAnnotations((a) => [...a, newAnnotation]);
-    setNextId(nextId + 1);
 
     if (current.cause && current.effect) {
       const newRelation = {
@@ -540,6 +553,7 @@ export default function AnnotatePage() {
       const res = await fetch("/api/save", {
         method: "POST",
         headers: { "content-type": "application/json" },
+        // In your saveWithPossibleForce function
         body: JSON.stringify({
           filename,
           annotations: annotations.map((ann) => ({
@@ -551,7 +565,7 @@ export default function AnnotatePage() {
             a2: ann.a2,
             e: ann.e,
           })),
-          relations,
+          relations, // This should be included
           force: pendingForce,
         }),
       });

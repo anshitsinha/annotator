@@ -1,3 +1,4 @@
+// View page - Update to show relations
 "use client";
 
 import { useEffect, useState } from "react";
@@ -70,15 +71,32 @@ export default function ViewPage() {
                   <div>
                     <div className="font-mono">{it.filename}</div>
                     <div className="text-sm text-gray-500">
-                      Updated: {it.updatedAt}
+                      Updated: {new Date(it.updatedAt).toLocaleString()}
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 text-sm">
-                  <pre className="whitespace-pre-wrap">
-                    {JSON.stringify(it.annotations, null, 2)}
-                  </pre>
+                
+                {/* Annotations Section */}
+                <div className="mt-3">
+                  <h3 className="font-semibold text-sm mb-2">Annotations:</h3>
+                  <div className="bg-white dark:bg-slate-900 p-3 rounded border">
+                    <pre className="whitespace-pre-wrap text-sm">
+                      {JSON.stringify(it.annotations, null, 2)}
+                    </pre>
+                  </div>
                 </div>
+
+                {/* Relations Section */}
+                {it.relations && it.relations.length > 0 && (
+                  <div className="mt-3">
+                    <h3 className="font-semibold text-sm mb-2">Relations:</h3>
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded border">
+                      <pre className="whitespace-pre-wrap text-sm">
+                        {JSON.stringify(it.relations, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

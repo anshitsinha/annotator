@@ -1,3 +1,4 @@
+// save.js - Already good, but here's the complete version
 import { getCollection } from "../../../lib/mongodb";
 
 export async function POST(request) {
@@ -27,6 +28,7 @@ export async function POST(request) {
     const doc = {
       filename: body.filename,
       annotations: body.annotations,
+      relations: body.relations || [], // This saves relations to MongoDB
       meta: body.meta || {},
       createdAt: existing ? existing.createdAt : now,
       updatedAt: now,
@@ -49,8 +51,6 @@ export async function POST(request) {
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (err) {
     console.error("Unexpected /api/save error:", err);
-    // Avoid leaking sensitive connection info in production. Return detailed
-    // message only in development, otherwise send a generic DB error.
     const publicMsg =
       process.env.NODE_ENV === "development"
         ? err.message || String(err)

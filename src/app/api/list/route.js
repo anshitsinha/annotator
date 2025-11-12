@@ -1,3 +1,4 @@
+// list.js - Update to include relations in CSV
 import { getCollection } from "../../../lib/mongodb";
 
 function objectArrayToCsv(rows, fields) {
@@ -35,14 +36,15 @@ export async function GET(request) {
     const docs = await col.find({}).toArray();
 
     if (format === "csv") {
-      // convert to flat CSV: filename, createdAt, updatedAt, annotations (as JSON string)
+      // convert to flat CSV: filename, createdAt, updatedAt, annotations (as JSON string), relations (as JSON string)
       const rows = docs.map((d) => ({
         filename: d.filename,
         createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : "",
         updatedAt: d.updatedAt ? new Date(d.updatedAt).toISOString() : "",
         annotations: JSON.stringify(d.annotations || []),
+        relations: JSON.stringify(d.relations || []), // Add relations to CSV
       }));
-      const fields = ["filename", "createdAt", "updatedAt", "annotations"];
+      const fields = ["filename", "createdAt", "updatedAt", "annotations", "relations"];
       const csv = objectArrayToCsv(rows, fields);
       return new Response(csv, {
         status: 200,

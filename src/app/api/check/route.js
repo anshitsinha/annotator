@@ -1,3 +1,4 @@
+// check.js - Update to handle relations
 import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
@@ -24,7 +25,11 @@ export async function GET(request) {
       if (exists) {
         // include the stored document for the UI
         return new Response(
-          JSON.stringify({ annotated: true, source: "mongodb", doc: exists }),
+          JSON.stringify({ 
+            annotated: true, 
+            source: "mongodb", 
+            doc: exists 
+          }),
           { status: 200 }
         );
       }
