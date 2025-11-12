@@ -407,7 +407,7 @@ export default function AnnotatePage() {
       ).toFixed(2)}MB)`,
     });
     setAnnotations([]); // Reset annotations for new file
-    setRelations([]); // Also reset relations for new file
+    setRelations([]); // Reset relations for new file
     // Don't reset nextId since we're calculating dynamically
   }
   // Drag and drop handlers
@@ -452,15 +452,17 @@ export default function AnnotatePage() {
       if (j.annotated) {
         setStatus({ kind: "info", msg: `Already annotated (${j.source})` });
         if (j.doc) {
-          setAnnotations(j.doc.annotations || []);
+          // When loading existing data, ensure IDs are sequential
+          const existingAnnotations = j.doc.annotations || [];
+          const renumberedAnnotations = existingAnnotations.map(
+            (ann, index) => ({
+              ...ann,
+              id: (index + 1).toString(), // Renumber to 1,2,3,4...
+            })
+          );
+
+          setAnnotations(renumberedAnnotations);
           setRelations(j.doc.relations || []);
-          // Set nextId based on existing annotations
-          if (j.doc.annotations && j.doc.annotations.length > 0) {
-            const maxId = Math.max(
-              ...j.doc.annotations.map((ann) => parseInt(ann.id))
-            );
-            setNextId(maxId + 1);
-          }
         }
       } else {
         setStatus({ kind: "success", msg: "Not annotated yet" });
@@ -486,8 +488,11 @@ export default function AnnotatePage() {
   function addToken() {
     const token = `<${current.z1}→${current.z2} : ${current.a1}→${current.a2} : ${current.e}>`;
 
+    // The next ID is always current length + 1
+    const newId = (annotations.length + 1).toString();
+
     const newAnnotation = {
-      id: getNextAvailableId(annotations),
+      id: newId,
       token,
       z1: current.z1,
       z2: current.z2,
@@ -497,19 +502,9 @@ export default function AnnotatePage() {
     };
 
     setAnnotations((a) => [...a, newAnnotation]);
-
-    if (current.cause && current.effect) {
-      const newRelation = {
-        cause: current.cause,
-        effect: current.effect,
-      };
-      setRelations((r) => [...r, newRelation]);
-
-      // Reset relation dropdowns
-      setCurrent((prev) => ({ ...prev, cause: "", effect: "" }));
-    }
   }
 
+  // Update the removeToken function to renumber all IDs
   function removeToken(idx) {
     const annotationToRemove = annotations[idx];
 
@@ -522,8 +517,16 @@ export default function AnnotatePage() {
       )
     );
 
-    // Remove the annotation
-    setAnnotations((a) => a.filter((_, i) => i !== idx));
+    // Remove the annotation and renumber all remaining annotations
+    setAnnotations((currentAnnotations) => {
+      const newAnnotations = currentAnnotations.filter((_, i) => i !== idx);
+
+      // Renumber all annotations sequentially starting from 1
+      return newAnnotations.map((ann, index) => ({
+        ...ann,
+        id: (index + 1).toString(),
+      }));
+    });
   }
   function moveAnnotation(from, to) {
     setAnnotations((prev) => {
@@ -535,13 +538,63 @@ export default function AnnotatePage() {
       const [item] = arr.splice(from, 1);
       const insertAt = from < target ? target : target;
       arr.splice(insertAt, 0, item);
-      return arr;
+
+      // Renumber all annotations after move
+      return arr.map((ann, index) => ({
+        ...ann,
+        id: (index + 1).toString(),
+      }));
     });
   }
 
+  // Add these functions for relations management
+  function addRelation() {
+    if (!current.cause || !current.effect) {
+      setStatus({ kind: "error", msg: "Please select both cause and effect" });
+      return;
+    }
+
+    // Check if both annotations exist
+    const causeExists = annotations.some((ann) => ann.id === current.cause);
+    const effectExists = annotations.some((ann) => ann.id === current.effect);
+
+    if (!causeExists || !effectExists) {
+      setStatus({ kind: "error", msg: "Selected annotation IDs do not exist" });
+      return;
+    }
+
+    // Check if relation already exists
+    const relationExists = relations.some(
+      (rel) => rel.cause === current.cause && rel.effect === current.effect
+    );
+
+    if (relationExists) {
+      setStatus({ kind: "error", msg: "This relation already exists" });
+      return;
+    }
+
+    const newRelation = {
+      cause: current.cause,
+      effect: current.effect,
+    };
+
+    setRelations((r) => [...r, newRelation]);
+    setCurrent((prev) => ({ ...prev, cause: "", effect: "" }));
+    setStatus({ kind: "success", msg: "Relation added successfully" });
+  }
+
+  function removeRelation(idx) {
+    setRelations((r) => r.filter((_, i) => i !== idx));
+  }
+
+  // Update the save function - make sure relations are included
   async function saveWithPossibleForce() {
     if (!filename) {
       return setStatus({ kind: "error", msg: "Please set filename" });
+    }
+
+    if (annotations.length === 0) {
+      return setStatus({ kind: "error", msg: "No annotations to save" });
     }
 
     setStatus({
@@ -553,7 +606,6 @@ export default function AnnotatePage() {
       const res = await fetch("/api/save", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        // In your saveWithPossibleForce function
         body: JSON.stringify({
           filename,
           annotations: annotations.map((ann) => ({
@@ -565,7 +617,7 @@ export default function AnnotatePage() {
             a2: ann.a2,
             e: ann.e,
           })),
-          relations, // This should be included
+          relations: relations, // This ensures relations are sent
           force: pendingForce,
         }),
       });
@@ -824,7 +876,6 @@ export default function AnnotatePage() {
                   </select>
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Actor Transition
@@ -859,7 +910,6 @@ export default function AnnotatePage() {
                   </select>
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-2">Event</label>
                 <select
@@ -876,7 +926,106 @@ export default function AnnotatePage() {
                   ))}
                 </select>
               </div>
+              {/* Relations Section - Updated with separate add button */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Relations
+                </label>
+                <div className="space-y-3 bg-white dark:bg-slate-800 p-3 rounded-lg border">
+                  <div className="flex gap-2 items-center">
+                    <label className="text-xs text-gray-500 w-16">Cause:</label>
+                    <select
+                      value={current.cause}
+                      onChange={(e) =>
+                        setCurrent((c) => ({ ...c, cause: e.target.value }))
+                      }
+                      className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 text-sm"
+                    >
+                      <option value="">Select cause</option>
+                      {annotations.map((ann) => (
+                        <option key={`cause-${ann.id}`} value={ann.id}>
+                          ID: {ann.id} - {ann.token}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
+                  <div className="flex gap-2 items-center">
+                    <label className="text-xs text-gray-500 w-16">
+                      Effect:
+                    </label>
+                    <select
+                      value={current.effect}
+                      onChange={(e) =>
+                        setCurrent((c) => ({ ...c, effect: e.target.value }))
+                      }
+                      className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 text-sm"
+                    >
+                      <option value="">Select effect</option>
+                      {annotations.map((ann) => (
+                        <option key={`effect-${ann.id}`} value={ann.id}>
+                          ID: {ann.id} - {ann.token}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={addRelation}
+                    disabled={!current.cause || !current.effect}
+                    className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    + Add Relation
+                  </button>
+                </div>
+              </div>
+              {/* Current Relations Display with Remove Buttons */}
+              {relations.length > 0 && (
+                <div className="bg-white dark:bg-slate-800 border rounded-lg p-3">
+                  <div className="text-xs text-gray-500 mb-2 flex justify-between items-center">
+                    <span>Current Relations</span>
+                    <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs">
+                      {relations.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {relations.map((rel, idx) => {
+                      const causeAnnotation = annotations.find(
+                        (a) => a.id === rel.cause
+                      );
+                      const effectAnnotation = annotations.find(
+                        (a) => a.id === rel.effect
+                      );
+
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-xs font-mono bg-blue-50 dark:bg-blue-900/20 p-2 rounded border"
+                        >
+                          <div className="flex-1">
+                            <div className="font-semibold">
+                              ID: {rel.cause} → ID: {rel.effect}
+                            </div>
+                            {causeAnnotation && effectAnnotation && (
+                              <div className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                                {causeAnnotation.token.substring(0, 20)}... →{" "}
+                                {effectAnnotation.token.substring(0, 20)}...
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => removeRelation(idx)}
+                            className="ml-2 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-xs hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                            title="Remove relation"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}{" "}
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Relations
@@ -925,7 +1074,6 @@ export default function AnnotatePage() {
                   </div>
                 </div>
               </div>
-
               {/* Preview */}
               <div className="bg-white dark:bg-slate-800 border rounded-lg p-3">
                 <div className="text-xs text-gray-500 mb-1">Preview</div>
@@ -938,7 +1086,6 @@ export default function AnnotatePage() {
                   </div>
                 )}
               </div>
-
               {/* Current Relations Display */}
               {relations.length > 0 && (
                 <div className="bg-white dark:bg-slate-800 border rounded-lg p-3">
@@ -957,7 +1104,6 @@ export default function AnnotatePage() {
                   </div>
                 </div>
               )}
-
               <div className="space-y-2 pt-2">
                 <button
                   onClick={addToken}
