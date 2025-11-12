@@ -314,6 +314,7 @@ export default function AnnotatePage() {
     a1: "V",
     a2: "E",
     e: "STOP",
+    // Keep cause and effect for relations management
     cause: "",
     effect: "",
   });
@@ -502,6 +503,8 @@ export default function AnnotatePage() {
     };
 
     setAnnotations((a) => [...a, newAnnotation]);
+
+    // No relation logic here anymore - relations are managed separately
   }
 
   // Update the removeToken function to renumber all IDs
@@ -876,6 +879,7 @@ export default function AnnotatePage() {
                   </select>
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Actor Transition
@@ -910,6 +914,7 @@ export default function AnnotatePage() {
                   </select>
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Event</label>
                 <select
@@ -926,62 +931,78 @@ export default function AnnotatePage() {
                   ))}
                 </select>
               </div>
-              {/* Relations Section - Updated with separate add button */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Relations
-                </label>
-                <div className="space-y-3 bg-white dark:bg-slate-800 p-3 rounded-lg border">
-                  <div className="flex gap-2 items-center">
-                    <label className="text-xs text-gray-500 w-16">Cause:</label>
-                    <select
-                      value={current.cause}
-                      onChange={(e) =>
-                        setCurrent((c) => ({ ...c, cause: e.target.value }))
-                      }
-                      className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 text-sm"
-                    >
-                      <option value="">Select cause</option>
-                      {annotations.map((ann) => (
-                        <option key={`cause-${ann.id}`} value={ann.id}>
-                          ID: {ann.id} - {ann.token}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
 
-                  <div className="flex gap-2 items-center">
-                    <label className="text-xs text-gray-500 w-16">
-                      Effect:
-                    </label>
-                    <select
-                      value={current.effect}
-                      onChange={(e) =>
-                        setCurrent((c) => ({ ...c, effect: e.target.value }))
-                      }
-                      className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 text-sm"
-                    >
-                      <option value="">Select effect</option>
-                      {annotations.map((ann) => (
-                        <option key={`effect-${ann.id}`} value={ann.id}>
-                          ID: {ann.id} - {ann.token}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={addRelation}
-                    disabled={!current.cause || !current.effect}
-                    className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm font-medium transition-colors"
-                  >
-                    + Add Relation
-                  </button>
+              {/* Preview - Simplified without relations */}
+              <div className="bg-white dark:bg-slate-800 border rounded-lg p-3">
+                <div className="text-xs text-gray-500 mb-1">Preview</div>
+                <div className="font-mono text-sm bg-gray-100 dark:bg-slate-900 p-2 rounded border">
+                  {`<${current.z1}→${current.z2} : ${current.a1}→${current.a2} : ${current.e}>`}
                 </div>
               </div>
-              {/* Current Relations Display with Remove Buttons */}
+
+              {/* Add Token Button */}
+              <button
+                onClick={addToken}
+                className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <span>+</span>
+                Add Token to List
+              </button>
+            </div>
+
+            {/* Separate Relations Management Section */}
+            <div className="mt-6 pt-6 border-t">
+              <h3 className="font-semibold text-lg mb-4">Manage Relations</h3>
+
+              <div className="space-y-3 bg-white dark:bg-slate-800 p-3 rounded-lg border">
+                <div className="flex gap-2 items-center">
+                  <label className="text-xs text-gray-500 w-16">Cause:</label>
+                  <select
+                    value={current.cause}
+                    onChange={(e) =>
+                      setCurrent((c) => ({ ...c, cause: e.target.value }))
+                    }
+                    className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 text-sm"
+                  >
+                    <option value="">Select cause</option>
+                    {annotations.map((ann) => (
+                      <option key={`cause-${ann.id}`} value={ann.id}>
+                        ID: {ann.id} - {ann.token}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-2 items-center">
+                  <label className="text-xs text-gray-500 w-16">Effect:</label>
+                  <select
+                    value={current.effect}
+                    onChange={(e) =>
+                      setCurrent((c) => ({ ...c, effect: e.target.value }))
+                    }
+                    className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 text-sm"
+                  >
+                    <option value="">Select effect</option>
+                    {annotations.map((ann) => (
+                      <option key={`effect-${ann.id}`} value={ann.id}>
+                        ID: {ann.id} - {ann.token}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  onClick={addRelation}
+                  disabled={!current.cause || !current.effect}
+                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm font-medium transition-colors"
+                >
+                  + Add Relation
+                </button>
+              </div>
+
+              {/* Current Relations Display */}
               {relations.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 border rounded-lg p-3">
+                <div className="mt-4 bg-white dark:bg-slate-800 border rounded-lg p-3">
                   <div className="text-xs text-gray-500 mb-2 flex justify-between items-center">
                     <span>Current Relations</span>
                     <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs">
@@ -1025,113 +1046,29 @@ export default function AnnotatePage() {
                     })}
                   </div>
                 </div>
-              )}{" "}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Relations
-                </label>
-                <div className="space-y-3 bg-white dark:bg-slate-800 p-3 rounded-lg border">
-                  <div className="flex gap-2 items-center">
-                    <label className="text-xs text-gray-500 w-16">Cause:</label>
-                    <select
-                      value={current.cause}
-                      onChange={(e) =>
-                        setCurrent((c) => ({ ...c, cause: e.target.value }))
-                      }
-                      className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 text-sm"
-                    >
-                      <option value="">Select cause</option>
-                      {getAvailableAnnotationIds().map((id) => (
-                        <option key={`cause-${id}`} value={id}>
-                          ID: {id}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex gap-2 items-center">
-                    <label className="text-xs text-gray-500 w-16">
-                      Effect:
-                    </label>
-                    <select
-                      value={current.effect}
-                      onChange={(e) =>
-                        setCurrent((c) => ({ ...c, effect: e.target.value }))
-                      }
-                      className="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 text-sm"
-                    >
-                      <option value="">Select effect</option>
-                      {getAvailableAnnotationIds().map((id) => (
-                        <option key={`effect-${id}`} value={id}>
-                          ID: {id}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="text-xs text-gray-500 text-center">
-                    Select cause and effect to create relation when adding token
-                  </div>
-                </div>
-              </div>
-              {/* Preview */}
-              <div className="bg-white dark:bg-slate-800 border rounded-lg p-3">
-                <div className="text-xs text-gray-500 mb-1">Preview</div>
-                <div className="font-mono text-sm bg-gray-100 dark:bg-slate-900 p-2 rounded border">
-                  {`<${current.z1}→${current.z2} : ${current.a1}→${current.a2} : ${current.e}>`}
-                </div>
-                {current.cause && current.effect && (
-                  <div className="mt-2 text-xs text-green-600 dark:text-green-400">
-                    Relation: {current.cause} → {current.effect}
-                  </div>
-                )}
-              </div>
-              {/* Current Relations Display */}
-              {relations.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 border rounded-lg p-3">
-                  <div className="text-xs text-gray-500 mb-2">
-                    Current Relations
-                  </div>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {relations.map((rel, idx) => (
-                      <div
-                        key={idx}
-                        className="text-xs font-mono bg-blue-50 dark:bg-blue-900/20 p-2 rounded border"
-                      >
-                        {rel.cause} → {rel.effect}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               )}
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={addToken}
-                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  <span>+</span>
-                  Add Token to List
-                </button>
+            </div>
 
-                <button
-                  onClick={saveWithPossibleForce}
-                  className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                    pendingForce
-                      ? "bg-orange-600 hover:bg-orange-700 text-white"
-                      : "bg-blue-600 hover:bg-blue-700 text-white"
-                  }`}
-                  disabled={annotations.length === 0}
-                >
-                  {pendingForce ? "⚠️ Overwrite Save" : "💾 Save Annotations"}
-                </button>
+            {/* Save Button at the bottom */}
+            <div className="mt-6 pt-6 border-t">
+              <button
+                onClick={saveWithPossibleForce}
+                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                  pendingForce
+                    ? "bg-orange-600 hover:bg-orange-700 text-white"
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
+                disabled={annotations.length === 0}
+              >
+                {pendingForce ? "⚠️ Overwrite Save" : "💾 Save Annotations"}
+              </button>
 
-                <a
-                  href="/view"
-                  className="block w-full px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors text-center"
-                >
-                  📋 View Annotations
-                </a>
-              </div>
+              <a
+                href="/view"
+                className="block w-full px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors text-center mt-2"
+              >
+                📋 View Annotations
+              </a>
             </div>
           </aside>
         </div>
